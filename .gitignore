@@ -46,3 +46,7 @@ export/
 # Sensitive
 *.env
 secrets.*
+
+# Local notes
+ELECTRON_BRIEF.md
+TODO.md
