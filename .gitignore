@@ -33,3 +33,16 @@ Package.resolved
 
 # CocoaPods
 Pods/
+
+# Archives & exports
+*.xcarchive
+export/
+
+# Signing
+*.p12
+*.mobileprovision
+*.provisionprofile
+
+# Sensitive
+*.env
+secrets.*
