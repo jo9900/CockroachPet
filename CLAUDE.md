@@ -41,9 +41,9 @@ All source lives in `CockroachPet/`. Seven Swift files, each with a clear respon
 ### Per-Cockroach Stack
 
 Each cockroach is three objects working together:
-- **`Cockroach`** — AI brain. A 16-state finite state machine that decides movement, reactions to mouse, and transitions. Contains all position/velocity/state data. Codable for persistence.
+- **`Cockroach`** — AI brain. A 16-state finite state machine that decides movement, reactions to mouse, and transitions. Contains all position/velocity/state data. Codable for persistence. Size is governed by `SizeVariant` enum (`.baby`, `.normal`, `.large`) with per-variant speed scaling via `speedScale`.
 - **`CockroachWindow`** — An `NSPanel` (transparent, borderless, floating, click-through on transparent areas). Handles mouse click/drag events and forwards them to its `Cockroach`.
-- **`CockroachView`** — SwiftUI `Canvas` that vector-draws the cockroach body, legs, antennae, wing casings, and eyes. No sprites; all procedural. Babies render at 1/3 scale.
+- **`CockroachView`** — SwiftUI `Canvas` that vector-draws the cockroach body, legs, antennae, wing casings, and eyes. No sprites; all procedural. Scale and color vary by `SizeVariant` (baby 0.33x light brown, normal 1.0x dark brown, large 1.5x darkest brown).
 
 ### Supporting Files
 

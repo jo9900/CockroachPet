@@ -25,3 +25,13 @@
 - Enhanced squish animation: `scaleY` reduced from 0.3 to 0.15 for a flatter death look.
 - Dying cockroaches now generate 5-8 splat particles (small brown ellipses) at random offsets, which fade out over 1 second.
 - Splat particles rendered in `CockroachView` before the eyes layer so they appear beneath the body.
+
+## feat: add size variants — 10% large cockroaches with darker colors
+
+- Replaced `isBaby: Bool` stored property with a `SizeVariant` enum (`.baby`, `.normal`, `.large`) across `Cockroach`, `CockroachView`, and `CockroachManager`.
+- `isBaby` is now a computed property (`sizeVariant == .baby`), so existing baby-reading code works unchanged.
+- Added `isLarge` computed property and `speedScale` (baby 1.3x, normal 1.0x, large 1.1x) to replace per-state ternary speed expressions.
+- All speed assignments in `transitionTo` now use `baseSpeed * speedScale * nightMultiplier` instead of `(isBaby ? X : Y)`.
+- Large cockroaches render at 1.5x scale with a darker body color (`0.35/0.18/0.05`).
+- `summonCockroach()` now spawns large cockroaches with 10% probability.
+- `SaveData` persists `sizeVariant` instead of `isBaby` (breaking change for saved state).

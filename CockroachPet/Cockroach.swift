@@ -24,6 +24,14 @@ enum CockroachState: String, Codable {
     case flying         // airborne escape when cornered
 }
 
+// MARK: - Size Variants
+
+enum SizeVariant: String, Codable {
+    case baby
+    case normal
+    case large
+}
+
 // MARK: - Cockroach Model
 
 class Cockroach: ObservableObject, Identifiable {
@@ -31,7 +39,7 @@ class Cockroach: ObservableObject, Identifiable {
     @Published var position: CGPoint
     @Published var angle: CGFloat = 0          // radians, 0 = right
     @Published var state: CockroachState = .entering
-    @Published var isBaby: Bool
+    @Published var sizeVariant: SizeVariant
     var bornAt: Date = Date()
     @Published var opacity: CGFloat = 1.0
     @Published var isSquished: Bool = false
@@ -41,7 +49,24 @@ class Cockroach: ObservableObject, Identifiable {
     @Published var bodyRaise: CGFloat = 0      // how much body is raised (alert)
     @Published var scaleY: CGFloat = 1.0       // for squish effect
 
-    var size: CGFloat { isBaby ? Constants.cockroachSize / 3 : Constants.cockroachSize }
+    var size: CGFloat {
+        switch sizeVariant {
+        case .baby: return Constants.cockroachSize / 3
+        case .normal: return Constants.cockroachSize
+        case .large: return Constants.cockroachSize * 1.5
+        }
+    }
+
+    var isBaby: Bool { sizeVariant == .baby }
+    var isLarge: Bool { sizeVariant == .large }
+
+    var speedScale: CGFloat {
+        switch sizeVariant {
+        case .baby: return 1.3
+        case .normal: return 1.0
+        case .large: return 1.1
+        }
+    }
     var speed: CGFloat = 0
     var targetPosition: CGPoint?
     var stateTimer: TimeInterval = 0
@@ -61,10 +86,10 @@ class Cockroach: ObservableObject, Identifiable {
     var flyHeight: CGFloat = 0
     var splatParticles: [(offset: CGPoint, opacity: CGFloat)] = []
 
-    init(id: UUID = UUID(), position: CGPoint, isBaby: Bool = false) {
+    init(id: UUID = UUID(), position: CGPoint, sizeVariant: SizeVariant = .normal) {
         self.id = id
         self.position = position
-        self.isBaby = isBaby
+        self.sizeVariant = sizeVariant
     }
 
     // MARK: - AI Update (called every frame)
@@ -134,22 +159,22 @@ class Cockroach: ObservableObject, Identifiable {
             stateDuration = Double.random(in: 1.0...4.0)
             bodyRaise = 0
         case .patrol:
-            speed = (isBaby ? 40 : 25) * NightModeManager.shared.speedMultiplier
+            speed = 25 * speedScale * NightModeManager.shared.speedMultiplier
             stateDuration = Double.random(in: 2.0...6.0)
             pickRandomTarget(within: nil)
         case .dash:
-            speed = (isBaby ? 200 : 150) * NightModeManager.shared.speedMultiplier
+            speed = 150 * speedScale * NightModeManager.shared.speedMultiplier
             stateDuration = Double.random(in: 0.3...0.8)
             pickRandomTarget(within: nil)
         case .wallFollow:
-            speed = (isBaby ? 35 : 20) * NightModeManager.shared.speedMultiplier
+            speed = 20 * speedScale * NightModeManager.shared.speedMultiplier
             stateDuration = Double.random(in: 3.0...8.0)
         case .alert:
             speed = 0
             bodyRaise = 0.3
             stateDuration = Double.random(in: 0.5...1.5)
         case .fleeing:
-            speed = (isBaby ? 250 : 180) * NightModeManager.shared.speedMultiplier
+            speed = 180 * speedScale * NightModeManager.shared.speedMultiplier
             stateDuration = Double.random(in: 0.5...1.2)
         case .flipped:
             speed = 0
@@ -159,7 +184,7 @@ class Cockroach: ObservableObject, Identifiable {
             speed = 0
             stateDuration = Double.random(in: 0.5...1.0)
         case .curious:
-            speed = (isBaby ? 20 : 12) * NightModeManager.shared.speedMultiplier
+            speed = 12 * speedScale * NightModeManager.shared.speedMultiplier
             stateDuration = Double.random(in: 2.0...5.0)
         case .playingDead:
             speed = 0
@@ -181,12 +206,12 @@ class Cockroach: ObservableObject, Identifiable {
                 ), opacity: CGFloat(1.0))
             }
         case .exiting:
-            speed = (isBaby ? 250 : 180) * NightModeManager.shared.speedMultiplier
+            speed = 180 * speedScale * NightModeManager.shared.speedMultiplier
         case .entering:
-            speed = (isBaby ? 60 : 40) * NightModeManager.shared.speedMultiplier
+            speed = 40 * speedScale * NightModeManager.shared.speedMultiplier
             enteringPhase = 0
         case .flying:
-            speed = (isBaby ? 300 : 220) * NightModeManager.shared.speedMultiplier
+            speed = 220 * speedScale * NightModeManager.shared.speedMultiplier
             flyHeight = 0
             stateDuration = Double.random(in: 0.8...1.5)
             // Pick a random landing spot away from corners
@@ -656,8 +681,7 @@ class Cockroach: ObservableObject, Identifiable {
     // MARK: - Persistence
 
     private func growUp() {
-        isBaby = false
-        // Brief pause when growing
+        sizeVariant = .normal
         transitionTo(.idle)
     }
 
@@ -665,18 +689,18 @@ class Cockroach: ObservableObject, Identifiable {
         let id: String
         let x: CGFloat
         let y: CGFloat
-        let isBaby: Bool
+        let sizeVariant: SizeVariant
     }
 
     func toSaveData() -> SaveData {
-        SaveData(id: id.uuidString, x: position.x, y: position.y, isBaby: isBaby)
+        SaveData(id: id.uuidString, x: position.x, y: position.y, sizeVariant: sizeVariant)
     }
 
     static func fromSaveData(_ data: SaveData) -> Cockroach {
         let roach = Cockroach(
             id: UUID(uuidString: data.id) ?? UUID(),
             position: CGPoint(x: data.x, y: data.y),
-            isBaby: data.isBaby
+            sizeVariant: data.sizeVariant
         )
         roach.state = .idle
         roach.transitionTo(.idle)

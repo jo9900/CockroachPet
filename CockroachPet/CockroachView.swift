@@ -7,7 +7,12 @@ struct CockroachView: View {
     var body: some View {
         Canvas { context, canvasSize in
             let center = CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2)
-            let scale = cockroach.isBaby ? 0.33 : 1.0
+            let scale: CGFloat
+            switch cockroach.sizeVariant {
+            case .baby: scale = 0.33
+            case .normal: scale = 1.0
+            case .large: scale = 1.5
+            }
             let bodyW: CGFloat = 30 * scale
             let bodyH: CGFloat = 18 * scale
 
@@ -26,9 +31,15 @@ struct CockroachView: View {
 
             context.transform = transform
 
-            let bodyColor = cockroach.isBaby
-                ? Color(red: 0.72, green: 0.52, blue: 0.32)  // lighter brown
-                : Color(red: 0.45, green: 0.25, blue: 0.1)   // dark brown
+            let bodyColor: Color
+            switch cockroach.sizeVariant {
+            case .baby:
+                bodyColor = Color(red: 0.72, green: 0.52, blue: 0.32)
+            case .normal:
+                bodyColor = Color(red: 0.45, green: 0.25, blue: 0.1)
+            case .large:
+                bodyColor = Color(red: 0.35, green: 0.18, blue: 0.05)
+            }
 
             let darkBrown = Color(red: 0.3, green: 0.15, blue: 0.05)
 

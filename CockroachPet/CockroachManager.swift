@@ -73,7 +73,8 @@ class CockroachManager: ObservableObject {
         let startX = CGFloat.random(in: screenBounds.minX + 50...screenBounds.maxX - 50)
         let startY = screenBounds.minY
 
-        let roach = Cockroach(position: CGPoint(x: startX, y: startY))
+        let variant: SizeVariant = Double.random(in: 0...1) < 0.1 ? .large : .normal
+        let roach = Cockroach(position: CGPoint(x: startX, y: startY), sizeVariant: variant)
         roach.transitionTo(.entering)
         addCockroach(roach)
     }
@@ -87,7 +88,7 @@ class CockroachManager: ObservableObject {
                 y: CGFloat.random(in: -30...30)
             )
             let babyPos = CGPoint(x: position.x + offset.x, y: position.y + offset.y)
-            let baby = Cockroach(position: babyPos, isBaby: true)
+            let baby = Cockroach(position: babyPos, sizeVariant: .baby)
             baby.transitionTo(.dash)
             baby.pickRandomTarget(within: NSScreen.main?.visibleFrame)
             addCockroach(baby)
