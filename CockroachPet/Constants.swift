@@ -23,4 +23,10 @@ enum Constants {
     static func setGrowthTimeMinutes(_ value: Int) {
         UserDefaults.standard.set(min(max(value, 1), 60), forKey: "growthTimeMinutes")
     }
+
+    // Night mode
+    static let nightStartHour = 20
+    static let nightEndHour = 7
+    static let nightSpeedMultiplier: CGFloat = 1.3
+    static let nightDashBoost: Double = 0.15
 }
