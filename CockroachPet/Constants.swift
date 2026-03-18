@@ -29,4 +29,11 @@ enum Constants {
     static let nightEndHour = 7
     static let nightSpeedMultiplier: CGFloat = 1.3
     static let nightDashBoost: Double = 0.15
+
+    // Poop trails
+    static let poopMaxCount = 150
+    static let poopChancePerFrame: Double = 0.003
+    static let poopMinLifetime: TimeInterval = 30
+    static let poopMaxLifetime: TimeInterval = 40
+    static let poopMinSpeed: CGFloat = 0.3
 }

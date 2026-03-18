@@ -16,6 +16,7 @@
 		A1B2C3D400000007 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000017 /* Constants.swift */; };
 		A1B2C3D400000008 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000020 /* Assets.xcassets */; };
 		A1B2C3D400000009 /* NightModeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000018 /* NightModeManager.swift */; };
+		A1B2C3D40000000A /* PoopManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000019 /* PoopManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +29,7 @@
 		A1B2C3D400000016 /* MouseTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseTracker.swift; sourceTree = "<group>"; };
 		A1B2C3D400000017 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		A1B2C3D400000018 /* NightModeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NightModeManager.swift; sourceTree = "<group>"; };
+		A1B2C3D400000019 /* PoopManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoopManager.swift; sourceTree = "<group>"; };
 		A1B2C3D400000020 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1B2C3D400000021 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1B2C3D400000022 /* CockroachPet.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CockroachPet.entitlements; sourceTree = "<group>"; };
@@ -63,6 +65,7 @@
 				A1B2C3D400000016 /* MouseTracker.swift */,
 				A1B2C3D400000017 /* Constants.swift */,
 				A1B2C3D400000018 /* NightModeManager.swift */,
+				A1B2C3D400000019 /* PoopManager.swift */,
 				A1B2C3D400000020 /* Assets.xcassets */,
 				A1B2C3D400000021 /* Info.plist */,
 				A1B2C3D400000022 /* CockroachPet.entitlements */,
@@ -155,6 +158,7 @@
 				A1B2C3D400000006 /* MouseTracker.swift in Sources */,
 				A1B2C3D400000007 /* Constants.swift in Sources */,
 				A1B2C3D400000009 /* NightModeManager.swift in Sources */,
+				A1B2C3D40000000A /* PoopManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

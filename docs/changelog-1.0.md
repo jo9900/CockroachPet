@@ -26,6 +26,15 @@
 - Dying cockroaches now generate 5-8 splat particles (small brown ellipses) at random offsets, which fade out over 1 second.
 - Splat particles rendered in `CockroachView` before the eyes layer so they appear beneath the body.
 
+## feat: add poop trail system with fading particles
+
+- Added `PoopManager` singleton that owns a full-screen transparent `NSPanel` overlay at `.floating` level.
+- Cockroaches moving at or above `poopMinSpeed` (0.3) have a `poopChancePerFrame` (0.003) chance each frame to spawn a `PoopParticle` at their current position.
+- Particles excluded from dead, dying, dragged, and falling cockroaches.
+- Up to `poopMaxCount` (150) particles alive simultaneously; each lives 30–40 seconds and fades from 60% to 0% opacity over its lifetime.
+- Rendered as 2.5pt dark-brown ellipses in a SwiftUI `Canvas` that ignores mouse events.
+- New poop constants added to `Constants.swift`; `PoopManager.shared.update(cockroaches:)` called once per tick in `CockroachManager`.
+
 ## feat: add size variants — 10% large cockroaches with darker colors
 
 - Replaced `isBaby: Bool` stored property with a `SizeVariant` enum (`.baby`, `.normal`, `.large`) across `Cockroach`, `CockroachView`, and `CockroachManager`.

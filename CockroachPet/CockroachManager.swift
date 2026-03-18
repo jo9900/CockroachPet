@@ -60,6 +60,9 @@ class CockroachManager: ObservableObject {
             }
         }
 
+        // Update poop particles
+        PoopManager.shared.update(cockroaches: cockroaches)
+
         for id in toRemove {
             removeCockroach(id: id)
         }
