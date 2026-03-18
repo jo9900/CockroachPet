@@ -84,6 +84,24 @@ struct CockroachView: View {
                 }
             }
 
+            // MARK: - Grooming animation
+            if cockroach.state == .grooming {
+                let groomReach = sin(cockroach.groomPhase) * 0.5 + 0.5
+                let groomBaseX = center.x + 0.28 * bodyW
+                let groomBaseY = center.y - bodyH * 0.35 - raiseOffset - flyOffset
+
+                let groomTipX = groomBaseX + bodyW * 0.3 + groomReach * bodyW * 0.15
+                let groomTipY = groomBaseY - legLength * 0.3 - groomReach * legLength * 0.4
+                let groomMidX = groomBaseX + bodyW * 0.15
+                let groomMidY = groomBaseY - legLength * 0.4
+
+                var groomPath = Path()
+                groomPath.move(to: CGPoint(x: groomBaseX, y: groomBaseY))
+                groomPath.addLine(to: CGPoint(x: groomMidX, y: groomMidY))
+                groomPath.addLine(to: CGPoint(x: groomTipX, y: groomTipY))
+                context.stroke(groomPath, with: .color(legColor), lineWidth: legWidth * 1.2)
+            }
+
             // MARK: - Antennae (cockroach-style: very long, wide V, graceful curve)
             let antennaLength: CGFloat = 42 * scale
             let antennaWidth: CGFloat = 0.8 * scale
@@ -208,12 +226,25 @@ struct CockroachView: View {
 
             // MARK: - Eyes
             let eyeSize: CGFloat = 3.0 * scale
+            let isNight = NightModeManager.shared.isNightMode
             for side in [-1.0, 1.0] {
                 let eyeX = center.x + bodyW * 0.38
                 let eyeY = center.y + CGFloat(side) * bodyH * 0.2 - raiseOffset - flyOffset
-                let eyeRect = CGRect(x: eyeX - eyeSize / 2, y: eyeY - eyeSize / 2,
-                                     width: eyeSize, height: eyeSize)
-                context.fill(Path(ellipseIn: eyeRect), with: .color(.black))
+
+                if isNight {
+                    let glowSize = eyeSize * 3
+                    let glowRect = CGRect(x: eyeX - glowSize / 2, y: eyeY - glowSize / 2,
+                                          width: glowSize, height: glowSize)
+                    context.fill(Path(ellipseIn: glowRect),
+                                with: .color(Color.red.opacity(0.3)))
+                    let eyeRect = CGRect(x: eyeX - eyeSize / 2, y: eyeY - eyeSize / 2,
+                                          width: eyeSize, height: eyeSize)
+                    context.fill(Path(ellipseIn: eyeRect), with: .color(Color.red))
+                } else {
+                    let eyeRect = CGRect(x: eyeX - eyeSize / 2, y: eyeY - eyeSize / 2,
+                                          width: eyeSize, height: eyeSize)
+                    context.fill(Path(ellipseIn: eyeRect), with: .color(.black))
+                }
             }
 
             // MARK: - Death X eyes

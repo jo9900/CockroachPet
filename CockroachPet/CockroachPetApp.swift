@@ -75,6 +75,7 @@ struct SettingsView: View {
 class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var statusItem: NSStatusItem!
     private var settingsWindow: NSWindow?
+    private var nightModeTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Hide dock icon — menu bar only
@@ -101,6 +102,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.title = "🪳"
 
+        nightModeTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            self?.updateMenuBarIcon()
+        }
+        updateMenuBarIcon()
+
         let menu = NSMenu()
 
         let summonItem = NSMenuItem(title: "🪳 Summon Cockroach", action: #selector(summonCockroach), keyEquivalent: "n")
@@ -124,6 +130,10 @@ let killAllItem = NSMenuItem(title: "☠️ Kill All", action: #selector(killAll
         menu.addItem(quitItem)
 
         statusItem.menu = menu
+    }
+
+    private func updateMenuBarIcon() {
+        statusItem.button?.title = NightModeManager.shared.isNightMode ? "🪳🌙" : "🪳"
     }
 
     @objc private func summonCockroach() {

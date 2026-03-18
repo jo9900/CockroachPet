@@ -16,6 +16,8 @@ enum CockroachState: String, Codable {
     case dragged        // picked up by user
     case falling        // dropped and falling
     case curious        // approaching still cursor
+    case playingDead    // lying still, surprise dash if cursor approaches
+    case grooming       // cleaning antennae with front leg
     case dying          // squish/death animation
     case dead           // fading out
     case exiting        // running to edge to disappear
@@ -51,6 +53,7 @@ class Cockroach: ObservableObject, Identifiable {
 
     // For curious behavior
     var cursorStillTimer: TimeInterval = 0
+    @Published var groomPhase: CGFloat = 0
 
     // For cornered flying
     var corneredTimer: TimeInterval = 0
@@ -103,6 +106,10 @@ class Cockroach: ObservableObject, Identifiable {
             updateFalling(dt: dt, screenBounds: screenBounds)
         case .curious:
             updateCurious(dt: dt, mousePosition: mousePosition, mouseSpeed: mouseSpeed)
+        case .playingDead:
+            updatePlayingDead(dt: dt, mousePosition: mousePosition, mouseSpeed: mouseSpeed)
+        case .grooming:
+            updateGrooming(dt: dt, mousePosition: mousePosition, mouseSpeed: mouseSpeed)
         case .dying:
             updateDying(dt: dt)
         case .dead:
@@ -126,22 +133,22 @@ class Cockroach: ObservableObject, Identifiable {
             stateDuration = Double.random(in: 1.0...4.0)
             bodyRaise = 0
         case .patrol:
-            speed = isBaby ? 40 : 25
+            speed = (isBaby ? 40 : 25) * NightModeManager.shared.speedMultiplier
             stateDuration = Double.random(in: 2.0...6.0)
             pickRandomTarget(within: nil)
         case .dash:
-            speed = isBaby ? 200 : 150
+            speed = (isBaby ? 200 : 150) * NightModeManager.shared.speedMultiplier
             stateDuration = Double.random(in: 0.3...0.8)
             pickRandomTarget(within: nil)
         case .wallFollow:
-            speed = isBaby ? 35 : 20
+            speed = (isBaby ? 35 : 20) * NightModeManager.shared.speedMultiplier
             stateDuration = Double.random(in: 3.0...8.0)
         case .alert:
             speed = 0
             bodyRaise = 0.3
             stateDuration = Double.random(in: 0.5...1.5)
         case .fleeing:
-            speed = isBaby ? 250 : 180
+            speed = (isBaby ? 250 : 180) * NightModeManager.shared.speedMultiplier
             stateDuration = Double.random(in: 0.5...1.2)
         case .flipped:
             speed = 0
@@ -151,20 +158,28 @@ class Cockroach: ObservableObject, Identifiable {
             speed = 0
             stateDuration = Double.random(in: 0.5...1.0)
         case .curious:
-            speed = isBaby ? 20 : 12
+            speed = (isBaby ? 20 : 12) * NightModeManager.shared.speedMultiplier
             stateDuration = Double.random(in: 2.0...5.0)
+        case .playingDead:
+            speed = 0
+            stateDuration = Double.random(in: 3.0...8.0)
+            flipProgress = 0.3
+        case .grooming:
+            speed = 0
+            stateDuration = Double.random(in: 2.0...4.0)
+            groomPhase = 0
         case .dying:
             speed = 0
             isSquished = true
             scaleY = 0.3
             stateDuration = 2.0
         case .exiting:
-            speed = isBaby ? 250 : 180
+            speed = (isBaby ? 250 : 180) * NightModeManager.shared.speedMultiplier
         case .entering:
-            speed = isBaby ? 60 : 40
+            speed = (isBaby ? 60 : 40) * NightModeManager.shared.speedMultiplier
             enteringPhase = 0
         case .flying:
-            speed = isBaby ? 300 : 220
+            speed = (isBaby ? 300 : 220) * NightModeManager.shared.speedMultiplier
             flyHeight = 0
             stateDuration = Double.random(in: 0.8...1.5)
             // Pick a random landing spot away from corners
@@ -322,6 +337,36 @@ class Cockroach: ObservableObject, Identifiable {
         }
     }
 
+    private func updatePlayingDead(dt: TimeInterval, mousePosition: CGPoint, mouseSpeed: CGFloat) {
+        let dx = mousePosition.x - position.x
+        let dy = mousePosition.y - position.y
+        let dist = hypot(dx, dy)
+
+        if dist < 60 {
+            flipProgress = 0
+            transitionTo(.dash)
+            angle = atan2(-dy, -dx)
+            targetPosition = CGPoint(
+                x: position.x + cos(angle) * 200,
+                y: position.y + sin(angle) * 200
+            )
+            return
+        }
+
+        if stateTimer >= stateDuration {
+            flipProgress = 0
+            transitionTo(.idle)
+        }
+    }
+
+    private func updateGrooming(dt: TimeInterval, mousePosition: CGPoint, mouseSpeed: CGFloat) {
+        groomPhase += CGFloat(dt) * 4.0
+        checkMouseReaction(mousePosition: mousePosition, mouseSpeed: mouseSpeed)
+        if stateTimer >= stateDuration {
+            transitionTo(.idle)
+        }
+    }
+
     private func updateDying(dt: TimeInterval) {
         opacity = max(0, opacity - CGFloat(dt) * 0.5)
         if opacity <= 0 {
@@ -448,13 +493,18 @@ class Cockroach: ObservableObject, Identifiable {
 
     private func pickNextIdleBehavior(screenBounds: CGRect) {
         let roll = Double.random(in: 0...1)
-        if roll < 0.3 {
+        let dashBoost = NightModeManager.shared.isNightMode ? Constants.nightDashBoost : 0
+        if roll < 0.20 {
             transitionTo(.idle)
-        } else if roll < 0.65 {
+        } else if roll < 0.48 {
             transitionTo(.patrol)
             pickRandomTarget(within: screenBounds)
-        } else if roll < 0.85 {
+        } else if roll < 0.60 - dashBoost {
             transitionTo(.wallFollow)
+        } else if roll < 0.68 - dashBoost {
+            transitionTo(.playingDead)
+        } else if roll < 0.80 - dashBoost {
+            transitionTo(.grooming)
         } else {
             transitionTo(.dash)
             pickRandomTarget(within: screenBounds)
