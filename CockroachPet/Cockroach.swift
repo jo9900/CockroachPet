@@ -59,6 +59,7 @@ class Cockroach: ObservableObject, Identifiable {
     var corneredTimer: TimeInterval = 0
     var corneredFlyTime: TimeInterval = 0  // when to trigger fly
     var flyHeight: CGFloat = 0
+    var splatParticles: [(offset: CGPoint, opacity: CGFloat)] = []
 
     init(id: UUID = UUID(), position: CGPoint, isBaby: Bool = false) {
         self.id = id
@@ -171,8 +172,14 @@ class Cockroach: ObservableObject, Identifiable {
         case .dying:
             speed = 0
             isSquished = true
-            scaleY = 0.3
+            scaleY = 0.15
             stateDuration = 2.0
+            splatParticles = (0..<Int.random(in: 5...8)).map { _ in
+                (offset: CGPoint(
+                    x: CGFloat.random(in: -20...20),
+                    y: CGFloat.random(in: -20...20)
+                ), opacity: CGFloat(1.0))
+            }
         case .exiting:
             speed = (isBaby ? 250 : 180) * NightModeManager.shared.speedMultiplier
         case .entering:
@@ -369,6 +376,9 @@ class Cockroach: ObservableObject, Identifiable {
 
     private func updateDying(dt: TimeInterval) {
         opacity = max(0, opacity - CGFloat(dt) * 0.5)
+        for i in splatParticles.indices {
+            splatParticles[i].opacity = max(0, splatParticles[i].opacity - CGFloat(dt))
+        }
         if opacity <= 0 {
             state = .dead
         }

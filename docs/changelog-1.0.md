@@ -17,3 +17,11 @@
 - Added grooming leg animation to `CockroachView` (extra articulated limb drawn when in grooming state).
 - Menu bar icon updates every 60s to show moon emoji during night mode.
 - Added `NightModeManager.swift` to the Xcode project build target (was previously missing).
+
+## feat: add fear scatter and enhanced squish with splat particles
+
+- When a cockroach dies, nearby cockroaches within 200pt scatter away in the opposite direction (fear scatter), triggered on the first frame of the dying state.
+- Added `fearScatter(near:)` method to `CockroachManager` that transitions nearby living cockroaches to `.fleeing` with an away-angle trajectory.
+- Enhanced squish animation: `scaleY` reduced from 0.3 to 0.15 for a flatter death look.
+- Dying cockroaches now generate 5-8 splat particles (small brown ellipses) at random offsets, which fade out over 1 second.
+- Splat particles rendered in `CockroachView` before the eyes layer so they appear beneath the body.

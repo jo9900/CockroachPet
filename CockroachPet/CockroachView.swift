@@ -224,6 +224,18 @@ struct CockroachView: View {
                             with: .color(Color.black.opacity(shadowAlpha)))
             }
 
+            // MARK: - Splat particles
+            if cockroach.state == .dying || cockroach.state == .dead {
+                let splatColor = Color(red: 0.35, green: 0.2, blue: 0.08)
+                for particle in cockroach.splatParticles {
+                    let px = center.x + particle.offset.x * scale
+                    let py = center.y + particle.offset.y * scale - raiseOffset - flyOffset
+                    let pSize: CGFloat = 3 * scale
+                    let pRect = CGRect(x: px - pSize / 2, y: py - pSize / 2, width: pSize, height: pSize)
+                    context.fill(Path(ellipseIn: pRect), with: .color(splatColor.opacity(Double(particle.opacity))))
+                }
+            }
+
             // MARK: - Eyes
             let eyeSize: CGFloat = 3.0 * scale
             let isNight = NightModeManager.shared.isNightMode

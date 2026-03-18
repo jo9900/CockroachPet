@@ -47,6 +47,11 @@ class CockroachManager: ObservableObject {
                 window.updatePosition()
             }
 
+            // Trigger fear scatter on first frame of dying
+            if cockroach.state == .dying && cockroach.stateTimer < 0.02 {
+                fearScatter(near: cockroach.position)
+            }
+
             // Remove dead cockroaches
             if cockroach.state == .dead {
                 toRemove.append(cockroach.id)
@@ -122,6 +127,26 @@ class CockroachManager: ObservableObject {
         for cockroach in cockroaches {
             if cockroach.state != .dead && cockroach.state != .dying {
                 cockroach.handleExterminate()
+            }
+        }
+    }
+
+    // MARK: - Fear Scatter
+
+    func fearScatter(near point: CGPoint) {
+        let scatterRadius: CGFloat = 200
+        for cockroach in cockroaches {
+            guard cockroach.state != .dead && cockroach.state != .dying && cockroach.state != .dragged else { continue }
+            let dist = hypot(cockroach.position.x - point.x, cockroach.position.y - point.y)
+            if dist < scatterRadius {
+                let awayAngle = atan2(cockroach.position.y - point.y, cockroach.position.x - point.x)
+                cockroach.transitionTo(.fleeing)
+                cockroach.angle = awayAngle
+                cockroach.targetPosition = CGPoint(
+                    x: cockroach.position.x + cos(awayAngle) * 200,
+                    y: cockroach.position.y + sin(awayAngle) * 200
+                )
+                cockroach.stateDuration = Double.random(in: 1.0...1.5)
             }
         }
     }
