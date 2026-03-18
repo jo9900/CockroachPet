@@ -12,6 +12,8 @@ class CockroachManager: ObservableObject {
     private var timer: Timer?
     private var lastUpdateTime: TimeInterval = 0
     private let mouseTracker = MouseTracker()
+    private var clipboardTimer: Timer?
+    private var lastClipboardCount: Int = 0
 
     private init() {
         startAnimationLoop()
@@ -161,6 +163,23 @@ class CockroachManager: ObservableObject {
 
     func removeExterminatorCursor() {
         NSCursor.pop()
+    }
+
+    // MARK: - Clipboard Summoning
+
+    func startClipboardMonitor() {
+        lastClipboardCount = NSPasteboard.general.changeCount
+        clipboardTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            self?.checkClipboard()
+        }
+    }
+
+    private func checkClipboard() {
+        let currentCount = NSPasteboard.general.changeCount
+        if currentCount != lastClipboardCount {
+            lastClipboardCount = currentCount
+            summonCockroach()
+        }
     }
 
     // MARK: - Persistence

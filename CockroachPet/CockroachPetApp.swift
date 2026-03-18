@@ -89,6 +89,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         if manager.cockroaches.isEmpty {
             manager.summonCockroach()
         }
+        manager.startClipboardMonitor()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
