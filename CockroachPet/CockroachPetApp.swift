@@ -74,6 +74,7 @@ struct SettingsView: View {
 
 class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var statusItem: NSStatusItem!
+    private var settingsWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Hide dock icon — menu bar only
@@ -137,13 +138,40 @@ let killAllItem = NSMenuItem(title: "☠️ Kill All", action: #selector(killAll
     }
 
     @objc private func openSettings() {
+        if let window = settingsWindow, window.isVisible {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let settingsView = SettingsView()
+        let hostingView = NSHostingView(rootView: settingsView)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 360, height: 280)
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 360, height: 280),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "CockroachPet Settings"
+        window.contentView = hostingView
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.makeKeyAndOrderFront(nil)
+
         NSApp.setActivationPolicy(.regular)
-        NSApp.activate()
-        // Open the SwiftUI Settings scene
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-        // Revert to accessory after a delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        NSApp.activate(ignoringOtherApps: true)
+
+        self.settingsWindow = window
+
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
             NSApp.setActivationPolicy(.accessory)
+            self?.settingsWindow = nil
         }
     }
 
