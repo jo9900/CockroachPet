@@ -8,6 +8,7 @@ class CockroachWindow: NSWindow {
     private var trackingArea: NSTrackingArea?
     private var isDragging = false
     private var dragStartPos: CGPoint = .zero
+    private var pendingClickWork: DispatchWorkItem?
 
     init(cockroach: Cockroach) {
         self.cockroach = cockroach
@@ -73,12 +74,15 @@ class CockroachWindow: NSWindow {
         }
 
         if event.clickCount == 2 {
+            // Cancel pending single-click so it doesn't fire
+            pendingClickWork?.cancel()
+            pendingClickWork = nil
+
             let result = cockroach.handleDoubleClick(currentCount: CockroachManager.shared.cockroaches.count)
             if result.babies > 0 {
                 CockroachManager.shared.spawnBabies(count: result.babies, near: cockroach.position)
             }
         } else {
-            // Start potential drag or single click
             isDragging = false
             dragStartPos = NSEvent.mouseLocation
         }
@@ -90,7 +94,12 @@ class CockroachWindow: NSWindow {
             let screenBounds = NSScreen.main?.visibleFrame ?? .zero
             cockroach.handleDragEnd(screenBounds: screenBounds)
         } else if event.clickCount == 1 && !CockroachManager.shared.exterminatorMode {
-            cockroach.handleClick()
+            // Delay single-click to allow double-click to cancel it
+            let work = DispatchWorkItem { [weak self] in
+                self?.cockroach.handleClick()
+            }
+            pendingClickWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + NSEvent.doubleClickInterval, execute: work)
         }
     }
 

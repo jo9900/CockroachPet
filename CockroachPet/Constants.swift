@@ -1,7 +1,7 @@
 import Foundation
 
 enum Constants {
-    static let cockroachSize: CGFloat = 30
+    static let cockroachSize: CGFloat = 60
     static let alertDistance: CGFloat = 100
     static let saveKey = "cockroachSaveData"
 

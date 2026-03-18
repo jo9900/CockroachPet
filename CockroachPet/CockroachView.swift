@@ -11,7 +11,7 @@ struct CockroachView: View {
             switch cockroach.sizeVariant {
             case .baby: scale = 0.33
             case .normal: scale = 1.0
-            case .large: scale = 1.5
+            case .large: scale = 3.0
             }
             let bodyW: CGFloat = 30 * scale
             let bodyH: CGFloat = 18 * scale

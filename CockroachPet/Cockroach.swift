@@ -53,7 +53,7 @@ class Cockroach: ObservableObject, Identifiable {
         switch sizeVariant {
         case .baby: return Constants.cockroachSize / 3
         case .normal: return Constants.cockroachSize
-        case .large: return Constants.cockroachSize * 1.5
+        case .large: return Constants.cockroachSize * 3.0
         }
     }
 
