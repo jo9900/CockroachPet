@@ -1,4 +1,4 @@
-# Changelog — v1.0
+# Changelog — v0.2.0
 
 ## fix: Settings window not opening in accessory mode
 
@@ -44,3 +44,9 @@
 - Large cockroaches render at 1.5x scale with a darker body color (`0.35/0.18/0.05`).
 - `summonCockroach()` now spawns large cockroaches with 10% probability.
 - `SaveData` persists `sizeVariant` instead of `isBaby` (breaking change for saved state).
+
+## feat: clipboard change summons a new cockroach
+
+- `CockroachManager` polls `NSPasteboard.general.changeCount` every 2 seconds.
+- When the count changes (user copied something), a new cockroach is summoned (respects max population limit).
+- Monitor started in `applicationDidFinishLaunching`.
