@@ -17,6 +17,9 @@
 		A1B2C3D400000008 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000020 /* Assets.xcassets */; };
 		A1B2C3D400000009 /* NightModeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000018 /* NightModeManager.swift */; };
 		A1B2C3D40000000A /* PoopManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000019 /* PoopManager.swift */; };
+		A1B2C3D40000000B /* RedEyeModeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000023 /* RedEyeModeManager.swift */; };
+		A1B2C3D40000000C /* WindowTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000024 /* WindowTracker.swift */; };
+		A1B2C3D40000000D /* CakeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D400000025 /* CakeManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +36,9 @@
 		A1B2C3D400000020 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1B2C3D400000021 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1B2C3D400000022 /* CockroachPet.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CockroachPet.entitlements; sourceTree = "<group>"; };
+		A1B2C3D400000023 /* RedEyeModeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedEyeModeManager.swift; sourceTree = "<group>"; };
+		A1B2C3D400000024 /* WindowTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowTracker.swift; sourceTree = "<group>"; };
+		A1B2C3D400000025 /* CakeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CakeManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -66,6 +72,9 @@
 				A1B2C3D400000017 /* Constants.swift */,
 				A1B2C3D400000018 /* NightModeManager.swift */,
 				A1B2C3D400000019 /* PoopManager.swift */,
+				A1B2C3D400000023 /* RedEyeModeManager.swift */,
+				A1B2C3D400000024 /* WindowTracker.swift */,
+				A1B2C3D400000025 /* CakeManager.swift */,
 				A1B2C3D400000020 /* Assets.xcassets */,
 				A1B2C3D400000021 /* Info.plist */,
 				A1B2C3D400000022 /* CockroachPet.entitlements */,
@@ -159,6 +168,9 @@
 				A1B2C3D400000007 /* Constants.swift in Sources */,
 				A1B2C3D400000009 /* NightModeManager.swift in Sources */,
 				A1B2C3D40000000A /* PoopManager.swift in Sources */,
+				A1B2C3D40000000B /* RedEyeModeManager.swift in Sources */,
+				A1B2C3D40000000C /* WindowTracker.swift in Sources */,
+				A1B2C3D40000000D /* CakeManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -235,7 +247,7 @@
 				CODE_SIGN_ENTITLEMENTS = CockroachPet/CockroachPet.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 54BTJHJKUU;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CockroachPet/Info.plist;
@@ -247,7 +259,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jo.cockroachpet.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -263,7 +275,7 @@
 				CODE_SIGN_ENTITLEMENTS = CockroachPet/CockroachPet.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 54BTJHJKUU;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CockroachPet/Info.plist;
@@ -275,7 +287,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jo.cockroachpet.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

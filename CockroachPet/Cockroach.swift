@@ -9,6 +9,7 @@ enum CockroachState: String, Codable {
     case patrol         // slow random walk
     case dash           // sudden fast run
     case wallFollow     // walking along screen edge
+    case windowCrawl    // walking along another app's window edge
     case alert          // noticed cursor nearby
     case fleeing        // running away from cursor
     case flipped        // on back after click
@@ -22,6 +23,7 @@ enum CockroachState: String, Codable {
     case dead           // fading out
     case exiting        // running to edge to disappear
     case flying         // airborne escape when cornered
+    case feeding        // walking to and eating the cake
 }
 
 // MARK: - Size Variants
@@ -50,12 +52,21 @@ class Cockroach: ObservableObject, Identifiable {
     @Published var scaleY: CGFloat = 1.0       // for squish effect
 
     var size: CGFloat {
+        let base: CGFloat
         switch sizeVariant {
-        case .baby: return Constants.cockroachSize / 3
-        case .normal: return Constants.cockroachSize
-        case .large: return Constants.cockroachSize * 3.0
+        case .baby: base = Constants.cockroachSize * 2 / 3
+        case .normal: base = Constants.cockroachSize
+        case .large: base = Constants.cockroachSize * 3.0
         }
+        return base * growthScale
     }
+
+    /// Cumulative size multiplier from eating cakes (every 2 cakes -> ×1.2).
+    @Published var growthScale: CGFloat = 1.0
+    /// Cakes eaten since last level-up. Resets to 0 when growthScale steps up.
+    var cakesEaten: Int = 0
+    /// Counts down a level-up visual flourish (seconds).
+    @Published var levelUpTimer: TimeInterval = 0
 
     var isBaby: Bool { sizeVariant == .baby }
     var isLarge: Bool { sizeVariant == .large }
@@ -86,6 +97,18 @@ class Cockroach: ObservableObject, Identifiable {
     var flyHeight: CGFloat = 0
     var splatParticles: [(offset: CGPoint, opacity: CGFloat)] = []
 
+    // For window edge crawl
+    var windowCrawlRect: CGRect?
+    var windowCrawlEdge: WindowEdge?
+    var windowCrawlDirection: CGFloat = 1  // +1 or -1 along the edge
+
+    // For accelerative gravity in `falling`
+    var fallVelocity: CGFloat = 0
+
+    // For feeding around a cake — store the offset from the cake so the
+    // cockroach naturally follows when the user drags the cake to a new spot.
+    var feedOffset: CGPoint?
+
     init(id: UUID = UUID(), position: CGPoint, sizeVariant: SizeVariant = .normal) {
         self.id = id
         self.position = position
@@ -96,6 +119,11 @@ class Cockroach: ObservableObject, Identifiable {
 
     func update(dt: TimeInterval, mousePosition: CGPoint, mouseSpeed: CGFloat, screenBounds: CGRect) {
         stateTimer += dt
+
+        // Drain the level-up visual flourish.
+        if levelUpTimer > 0 {
+            levelUpTimer = max(0, levelUpTimer - dt)
+        }
 
         // Baby growth check
         if isBaby {
@@ -118,6 +146,10 @@ class Cockroach: ObservableObject, Identifiable {
             updateDash(dt: dt, screenBounds: screenBounds)
         case .wallFollow:
             updateWallFollow(dt: dt, mousePosition: mousePosition, mouseSpeed: mouseSpeed, screenBounds: screenBounds)
+        case .windowCrawl:
+            updateWindowCrawl(dt: dt, mousePosition: mousePosition, mouseSpeed: mouseSpeed, screenBounds: screenBounds)
+        case .feeding:
+            updateFeeding(dt: dt, mousePosition: mousePosition, mouseSpeed: mouseSpeed)
         case .alert:
             updateAlert(dt: dt, mousePosition: mousePosition, mouseSpeed: mouseSpeed)
         case .fleeing:
@@ -159,22 +191,36 @@ class Cockroach: ObservableObject, Identifiable {
             stateDuration = Double.random(in: 1.0...4.0)
             bodyRaise = 0
         case .patrol:
-            speed = 25 * speedScale * NightModeManager.shared.speedMultiplier
+            speed = 25 * speedScale * ActiveBuffs.speedMultiplier
             stateDuration = Double.random(in: 2.0...6.0)
             pickRandomTarget(within: nil)
         case .dash:
-            speed = 150 * speedScale * NightModeManager.shared.speedMultiplier
+            speed = 150 * speedScale * ActiveBuffs.speedMultiplier
             stateDuration = Double.random(in: 0.3...0.8)
             pickRandomTarget(within: nil)
         case .wallFollow:
-            speed = 20 * speedScale * NightModeManager.shared.speedMultiplier
+            speed = 20 * speedScale * ActiveBuffs.speedMultiplier
             stateDuration = Double.random(in: 3.0...8.0)
+        case .windowCrawl:
+            speed = 22 * speedScale * ActiveBuffs.speedMultiplier
+            stateDuration = Double.random(in: 4.0...9.0)
+            windowCrawlDirection = Bool.random() ? 1 : -1
+            // Snap to the assigned edge if one was provided before the transition.
+            applyWindowCrawlSnap()
+        case .feeding:
+            speed = 40 * speedScale * ActiveBuffs.speedMultiplier
+            stateDuration = Cake.totalLifetime
+            bodyRaise = 0
+            if let cake = CakeManager.shared.cake, let offset = feedOffset {
+                let target = CGPoint(x: cake.position.x + offset.x, y: cake.position.y + offset.y)
+                angle = atan2(target.y - position.y, target.x - position.x)
+            }
         case .alert:
             speed = 0
             bodyRaise = 0.3
             stateDuration = Double.random(in: 0.5...1.5)
         case .fleeing:
-            speed = 180 * speedScale * NightModeManager.shared.speedMultiplier
+            speed = 180 * speedScale * ActiveBuffs.speedMultiplier
             stateDuration = Double.random(in: 0.5...1.2)
         case .flipped:
             speed = 0
@@ -184,7 +230,7 @@ class Cockroach: ObservableObject, Identifiable {
             speed = 0
             stateDuration = Double.random(in: 0.5...1.0)
         case .curious:
-            speed = 12 * speedScale * NightModeManager.shared.speedMultiplier
+            speed = 12 * speedScale * ActiveBuffs.speedMultiplier
             stateDuration = Double.random(in: 2.0...5.0)
         case .playingDead:
             speed = 0
@@ -206,12 +252,12 @@ class Cockroach: ObservableObject, Identifiable {
                 ), opacity: CGFloat(1.0))
             }
         case .exiting:
-            speed = 180 * speedScale * NightModeManager.shared.speedMultiplier
+            speed = 180 * speedScale * ActiveBuffs.speedMultiplier
         case .entering:
-            speed = 40 * speedScale * NightModeManager.shared.speedMultiplier
+            speed = 40 * speedScale * ActiveBuffs.speedMultiplier
             enteringPhase = 0
         case .flying:
-            speed = 220 * speedScale * NightModeManager.shared.speedMultiplier
+            speed = 220 * speedScale * ActiveBuffs.speedMultiplier
             flyHeight = 0
             stateDuration = Double.random(in: 0.8...1.5)
             // Pick a random landing spot away from corners
@@ -290,7 +336,7 @@ class Cockroach: ObservableObject, Identifiable {
         angle = atan2(dy, dx)
         bodyRaise = 0.3
 
-        if mouseSpeed > 100 {
+        if mouseSpeed > Constants.fleeSpeedThreshold {
             // Cursor moved fast — flee!
             transitionTo(.fleeing)
             // Flee in opposite direction
@@ -339,12 +385,13 @@ class Cockroach: ObservableObject, Identifiable {
     }
 
     private func updateFalling(dt: TimeInterval, screenBounds: CGRect) {
-        // Use physical screen bottom (not visibleFrame) for gravity
+        // Accelerative gravity — feels more like a real drop than a constant fall.
         let physicalBottom = NSScreen.main?.frame.minY ?? 0
-        position.y -= CGFloat(dt) * 400 // fall down
+        fallVelocity += Constants.fallGravity * CGFloat(dt)
+        position.y -= fallVelocity * CGFloat(dt)
         if position.y <= physicalBottom + 10 {
-            // Hit the bottom — flip and recover (cockroaches don't die from falling!)
             position.y = physicalBottom + 10
+            fallVelocity = 0
             transitionTo(.flipped)
         }
     }
@@ -463,11 +510,144 @@ class Cockroach: ObservableObject, Identifiable {
         }
     }
 
+    // MARK: - Feeding
+
+    private func updateFeeding(dt: TimeInterval, mousePosition: CGPoint, mouseSpeed: CGFloat) {
+        // Cake gone? back to idle.
+        guard let cake = CakeManager.shared.cake else {
+            feedOffset = nil
+            transitionTo(.idle)
+            return
+        }
+
+        // No assigned offset yet — pick a spot in a ring around the cake
+        // and remember it relative to the cake (so it follows when dragged).
+        if feedOffset == nil {
+            feedOffset = CakeManager.shared.randomEatingOffset()
+        }
+        guard let offset = feedOffset else { return }
+
+        let target = CGPoint(x: cake.position.x + offset.x, y: cake.position.y + offset.y)
+        let dx = target.x - position.x
+        let dy = target.y - position.y
+        let dist = hypot(dx, dy)
+
+        if dist > 4 {
+            // Walk over.
+            angle = atan2(dy, dx)
+            position.x += cos(angle) * speed * CGFloat(dt)
+            position.y += sin(angle) * speed * CGFloat(dt)
+        } else {
+            // Arrived — face the cake and nibble.
+            speed = 0
+            angle = atan2(cake.position.y - position.y, cake.position.x - position.x)
+            // Tiny nibble wobble so it looks alive.
+            angle += sin(stateTimer * 12) * 0.08
+        }
+    }
+
+    // MARK: - Window Edge Crawl
+
+    private func updateWindowCrawl(dt: TimeInterval, mousePosition: CGPoint, mouseSpeed: CGFloat, screenBounds: CGRect) {
+        // Cursor reaction takes priority.
+        checkMouseReaction(mousePosition: mousePosition, mouseSpeed: mouseSpeed)
+        if state != .windowCrawl { return }
+
+        // Bail if the window vanished (closed, minimized, hidden behind another app).
+        guard let rect = windowCrawlRect, let edge = windowCrawlEdge,
+              WindowTracker.shared.contains(rect) else {
+            clearWindowCrawlState()
+            transitionTo(.idle)
+            return
+        }
+
+        let inset = Constants.windowCrawlEdgeInset
+        let step = speed * CGFloat(dt) * windowCrawlDirection
+
+        switch edge {
+        case .top:
+            position.y = rect.maxY + inset
+            position.x += step
+            angle = windowCrawlDirection > 0 ? 0 : .pi
+            if position.x < rect.minX - inset || position.x > rect.maxX + inset {
+                clearWindowCrawlState()
+                transitionTo(.idle)
+                return
+            }
+        case .bottom:
+            position.y = rect.minY - inset
+            position.x += step
+            angle = windowCrawlDirection > 0 ? 0 : .pi
+            if position.x < rect.minX - inset || position.x > rect.maxX + inset {
+                clearWindowCrawlState()
+                transitionTo(.idle)
+                return
+            }
+        case .left:
+            position.x = rect.minX - inset
+            position.y += step
+            angle = windowCrawlDirection > 0 ? .pi / 2 : -.pi / 2
+            if position.y < rect.minY - inset || position.y > rect.maxY + inset {
+                clearWindowCrawlState()
+                transitionTo(.idle)
+                return
+            }
+        case .right:
+            position.x = rect.maxX + inset
+            position.y += step
+            angle = windowCrawlDirection > 0 ? .pi / 2 : -.pi / 2
+            if position.y < rect.minY - inset || position.y > rect.maxY + inset {
+                clearWindowCrawlState()
+                transitionTo(.idle)
+                return
+            }
+        }
+
+        // Slight angle wobble for visual life.
+        angle += sin(stateTimer * 3) * 0.02
+
+        if stateTimer >= stateDuration {
+            clearWindowCrawlState()
+            transitionTo(.idle)
+        }
+    }
+
+    private func applyWindowCrawlSnap() {
+        guard let rect = windowCrawlRect, let edge = windowCrawlEdge else { return }
+        let inset = Constants.windowCrawlEdgeInset
+        switch edge {
+        case .top:
+            position.y = rect.maxY + inset
+            position.x = min(max(position.x, rect.minX), rect.maxX)
+            angle = windowCrawlDirection > 0 ? 0 : .pi
+        case .bottom:
+            position.y = rect.minY - inset
+            position.x = min(max(position.x, rect.minX), rect.maxX)
+            angle = windowCrawlDirection > 0 ? 0 : .pi
+        case .left:
+            position.x = rect.minX - inset
+            position.y = min(max(position.y, rect.minY), rect.maxY)
+            angle = windowCrawlDirection > 0 ? .pi / 2 : -.pi / 2
+        case .right:
+            position.x = rect.maxX + inset
+            position.y = min(max(position.y, rect.minY), rect.maxY)
+            angle = windowCrawlDirection > 0 ? .pi / 2 : -.pi / 2
+        }
+    }
+
+    private func clearWindowCrawlState() {
+        windowCrawlRect = nil
+        windowCrawlEdge = nil
+    }
+
     // MARK: - Helpers
 
 
     /// Check if cornered near screen edge with cursor nearby — trigger flight escape
     private func checkCorneredFlight(mousePosition: CGPoint) {
+        // Babies don't have working wings yet.
+        if isBaby { return }
+
         let screenBounds = NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
         let dx = mousePosition.x - position.x
         let dy = mousePosition.y - position.y
@@ -505,7 +685,7 @@ class Cockroach: ObservableObject, Identifiable {
         checkCorneredFlight(mousePosition: mousePosition)
 
         if dist < Constants.alertDistance {
-            if mouseSpeed > 100 {
+            if mouseSpeed > Constants.fleeSpeedThreshold {
                 transitionTo(.fleeing)
                 angle = atan2(-dy, -dx)
                 targetPosition = CGPoint(
@@ -527,8 +707,20 @@ class Cockroach: ObservableObject, Identifiable {
     }
 
     private func pickNextIdleBehavior(screenBounds: CGRect) {
+        // First, with windowCrawlChance, try to grab a nearby window edge.
+        if Double.random(in: 0...1) < Constants.windowCrawlChance,
+           let found = WindowTracker.shared.nearestEdge(
+               to: position,
+               maxDistance: Constants.windowCrawlDetectionDistance
+           ) {
+            windowCrawlRect = found.rect
+            windowCrawlEdge = found.edge
+            transitionTo(.windowCrawl)
+            return
+        }
+
         let roll = Double.random(in: 0...1)
-        let dashBoost = NightModeManager.shared.isNightMode ? Constants.nightDashBoost : 0
+        let dashBoost = ActiveBuffs.dashBoost
         if roll < 0.20 {
             transitionTo(.idle)
         } else if roll < 0.48 {
@@ -619,23 +811,21 @@ class Cockroach: ObservableObject, Identifiable {
     func handleDoubleClick(currentCount: Int) -> (died: Bool, babies: Int) {
         if state == .dying || state == .dead { return (false, 0) }
 
-        let roll = Double.random(in: 0...1)
-        if roll < 0.8 {
-            // 80%: recover and run
-            transitionTo(.flipped)
-            return (false, 0)
-        } else {
-            // 20%: egg sac (if under limit)
-            if currentCount < Constants.maxCockroaches {
-                transitionTo(.dying)
-                let babyCount = Int.random(in: 3...5)
-                return (true, babyCount)
-            } else {
-                // Too many — just recover
-                transitionTo(.flipped)
-                return (false, 0)
-            }
+        // Double-click always kills. Babies just die.
+        if isBaby {
+            transitionTo(.dying)
+            return (true, 0)
         }
+
+        // Adults always die too — the squishBabySpawnChance only decides
+        // whether an egg sac bursts and spawns babies along the way.
+        transitionTo(.dying)
+        let burstsEggs = Double.random(in: 0...1) < Constants.squishBabySpawnChance
+        if burstsEggs && currentCount < Constants.maxCockroaches {
+            let babyCount = Int.random(in: 3...5)
+            return (true, babyCount)
+        }
+        return (true, 0)
     }
 
     func handleDragStart() {

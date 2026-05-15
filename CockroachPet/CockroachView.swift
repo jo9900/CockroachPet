@@ -9,7 +9,7 @@ struct CockroachView: View {
             let center = CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2)
             let scale: CGFloat
             switch cockroach.sizeVariant {
-            case .baby: scale = 0.33
+            case .baby: scale = 0.66
             case .normal: scale = 1.0
             case .large: scale = 3.0
             }
@@ -249,7 +249,7 @@ struct CockroachView: View {
 
             // MARK: - Eyes
             let eyeSize: CGFloat = 3.0 * scale
-            let isNight = NightModeManager.shared.isNightMode
+            let isNight = ActiveBuffs.redEyesVisible
             for side in [-1.0, 1.0] {
                 let eyeX = center.x + bodyW * 0.38
                 let eyeY = center.y + CGFloat(side) * bodyH * 0.2 - raiseOffset - flyOffset
@@ -282,6 +282,59 @@ struct CockroachView: View {
                     xPath.move(to: CGPoint(x: eyeX + xSize, y: eyeY - xSize))
                     xPath.addLine(to: CGPoint(x: eyeX - xSize, y: eyeY + xSize))
                     context.stroke(xPath, with: .color(.red), lineWidth: 1.5 * scale)
+                }
+            }
+
+            // MARK: - Level-up flourish
+            if cockroach.levelUpTimer > 0 {
+                let total: CGFloat = 1.5
+                let t = max(0, min(1, CGFloat(1 - cockroach.levelUpTimer / total)))
+                let alpha = Double(1 - t)
+                let glowR = (cockroach.size * 0.55) + t * 50
+                let glowRect = CGRect(
+                    x: center.x - glowR,
+                    y: center.y - glowR,
+                    width: glowR * 2,
+                    height: glowR * 2
+                )
+                context.stroke(
+                    Path(ellipseIn: glowRect),
+                    with: .color(Color.yellow.opacity(alpha)),
+                    lineWidth: 3
+                )
+                let inner = glowR - 14
+                if inner > 0 {
+                    let innerRect = CGRect(
+                        x: center.x - inner,
+                        y: center.y - inner,
+                        width: inner * 2,
+                        height: inner * 2
+                    )
+                    context.stroke(
+                        Path(ellipseIn: innerRect),
+                        with: .color(Color(red: 1, green: 0.85, blue: 0.4).opacity(alpha * 0.7)),
+                        lineWidth: 2
+                    )
+                }
+                // Sparkle dots radiating outward.
+                let sparkleCount = 8
+                for i in 0..<sparkleCount {
+                    let theta = CGFloat(i) / CGFloat(sparkleCount) * 2 * .pi + t * 1.5
+                    let r = glowR + 8
+                    let px = center.x + cos(theta) * r
+                    let py = center.y + sin(theta) * r
+                    let pSize: CGFloat = 4 * (1 - t)
+                    if pSize <= 0 { continue }
+                    let pRect = CGRect(
+                        x: px - pSize / 2,
+                        y: py - pSize / 2,
+                        width: pSize,
+                        height: pSize
+                    )
+                    context.fill(
+                        Path(ellipseIn: pRect),
+                        with: .color(Color.yellow.opacity(alpha))
+                    )
                 }
             }
 

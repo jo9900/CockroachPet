@@ -14,6 +14,7 @@ class CockroachManager: ObservableObject {
     private let mouseTracker = MouseTracker()
     private var clipboardTimer: Timer?
     private var lastClipboardCount: Int = 0
+    private var nightSpawnAccumulator: TimeInterval = 0
 
     private init() {
         startAnimationLoop()
@@ -44,9 +45,24 @@ class CockroachManager: ObservableObject {
         for cockroach in cockroaches {
             cockroach.update(dt: dt, mousePosition: mousePos, mouseSpeed: mouseSpeed, screenBounds: screenBounds)
 
-            // Update window position
+            // Update window position + cursor-based hit test.
             if let window = windows[cockroach.id] {
                 window.updatePosition()
+
+                // The cockroach window is `size * 3` large to leave room for
+                // animations, but most of it is transparent. Without this
+                // gate, clicking that transparent halo would still hit the
+                // window and block underlying apps. Toggle click-through
+                // every tick based on cursor proximity to the actual bug.
+                let dxw = mousePos.x - cockroach.position.x
+                let dyw = mousePos.y - cockroach.position.y
+                let cursorDist = hypot(dxw, dyw)
+                let hitRadius = cockroach.size * 0.5 + 8
+                let onCockroach = cursorDist <= hitRadius
+                // Keep events active while being dragged so the drag doesn't
+                // drop if the cursor wobbles past the radius for one frame.
+                let inDrag = cockroach.state == .dragged
+                window.ignoresMouseEvents = !(onCockroach || inDrag)
             }
 
             // Trigger fear scatter on first frame of dying
@@ -66,6 +82,50 @@ class CockroachManager: ObservableObject {
         for id in toRemove {
             removeCockroach(id: id)
         }
+
+        updateNightAutoSpawn(dt: dt)
+
+        // Advance / clean up the feeding cake.
+        CakeManager.shared.update()
+    }
+
+    /// While red eye / night mode is active, push out a new cockroach from a
+    /// random screen edge every `nightAutoSpawnInterval` seconds.
+    private func updateNightAutoSpawn(dt: TimeInterval) {
+        guard ActiveBuffs.redEyesVisible else {
+            nightSpawnAccumulator = 0
+            return
+        }
+        nightSpawnAccumulator += dt
+        if nightSpawnAccumulator >= Constants.nightAutoSpawnInterval {
+            nightSpawnAccumulator = 0
+            spawnAtRandomEdge()
+        }
+    }
+
+    private func spawnAtRandomEdge() {
+        guard cockroaches.count < Constants.maxCockroaches else { return }
+        guard let screen = NSScreen.main?.visibleFrame else { return }
+
+        // Pick one of the four edges and a random offset along it.
+        let edge = Int.random(in: 0..<4)
+        let position: CGPoint
+        switch edge {
+        case 0: // top
+            position = CGPoint(x: .random(in: screen.minX + 50...screen.maxX - 50), y: screen.maxY)
+        case 1: // bottom
+            position = CGPoint(x: .random(in: screen.minX + 50...screen.maxX - 50), y: screen.minY)
+        case 2: // left
+            position = CGPoint(x: screen.minX, y: .random(in: screen.minY + 50...screen.maxY - 50))
+        default: // right
+            position = CGPoint(x: screen.maxX, y: .random(in: screen.minY + 50...screen.maxY - 50))
+        }
+
+        let variant: SizeVariant = Double.random(in: 0...1) < 0.1 ? .large : .normal
+        let roach = Cockroach(position: position, sizeVariant: variant)
+        roach.transitionTo(.dash)
+        roach.pickRandomTarget(within: screen)
+        addCockroach(roach)
     }
 
     // MARK: - Spawning
@@ -106,6 +166,19 @@ class CockroachManager: ObservableObject {
         let window = CockroachWindow(cockroach: cockroach)
         windows[cockroach.id] = window
         window.orderFront(nil)
+
+        // If there's a cake on screen, recruit this newcomer too (90% chance),
+        // so cockroaches spawned via clipboard / babies / night auto-spawn /
+        // ⌘N also join the feast instead of ignoring the cake.
+        if CakeManager.shared.cake != nil {
+            switch cockroach.state {
+            case .dying, .dead, .dragged, .falling, .flipped, .struggling, .exiting:
+                break
+            default:
+                cockroach.feedOffset = CakeManager.shared.randomEatingOffset()
+                cockroach.transitionTo(.feeding)
+            }
+        }
     }
 
     private func removeCockroach(id: UUID) {

@@ -65,37 +65,36 @@ final class PoopManager {
             )
             particles.append(particle)
         }
-
-        // Refresh the canvas
-        if let hosting = hostingView {
-            hosting.rootView = PoopCanvasView(manager: self)
-        }
     }
 }
 
+/// Canvas wrapper that uses TimelineView to force a redraw every animation tick.
+/// Without this, SwiftUI's Canvas caches and the poop dots never appear.
 struct PoopCanvasView: View {
     let manager: PoopManager
 
     var body: some View {
-        Canvas { context, size in
-            let now = CACurrentMediaTime()
-            let screen = NSScreen.main?.frame ?? .zero
+        TimelineView(.animation) { _ in
+            Canvas { context, size in
+                let now = CACurrentMediaTime()
+                let screen = NSScreen.main?.frame ?? .zero
 
-            for particle in manager.particles {
-                let age = now - particle.birthTime
-                let lifeRatio = age / particle.lifetime
-                let alpha = max(0, 0.6 * (1.0 - lifeRatio))
+                for particle in manager.particles {
+                    let age = now - particle.birthTime
+                    let lifeRatio = age / particle.lifetime
+                    let alpha = max(0, 0.6 * (1.0 - lifeRatio))
 
-                // Convert screen coords to view coords (flip Y)
-                let x = particle.position.x - screen.minX
-                let y = size.height - (particle.position.y - screen.minY)
+                    // Convert screen coords to view coords (flip Y).
+                    let x = particle.position.x - screen.minX
+                    let y = size.height - (particle.position.y - screen.minY)
 
-                let dotSize: CGFloat = 2.5
-                let rect = CGRect(x: x - dotSize / 2, y: y - dotSize / 2, width: dotSize, height: dotSize)
-                context.fill(
-                    Path(ellipseIn: rect),
-                    with: .color(Color(red: 0.29, green: 0.14, blue: 0.03).opacity(alpha))
-                )
+                    let dotSize: CGFloat = 2.5
+                    let rect = CGRect(x: x - dotSize / 2, y: y - dotSize / 2, width: dotSize, height: dotSize)
+                    context.fill(
+                        Path(ellipseIn: rect),
+                        with: .color(Color(red: 0.29, green: 0.14, blue: 0.03).opacity(alpha))
+                    )
+                }
             }
         }
         .allowsHitTesting(false)

@@ -19,14 +19,14 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("CockroachPet Settings")
+            Text("CockroachPet 设置 / Settings")
                 .font(.title2)
                 .fontWeight(.bold)
 
             // Max cockroaches slider
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text("🪳 Max Cockroaches")
+                    Text("🪳 最大数量 / Max Cockroaches")
                     Spacer()
                     Text("\(Int(maxCockroaches))")
                         .monospacedDigit()
@@ -37,7 +37,7 @@ struct SettingsView: View {
                         Constants.setMaxCockroaches(Int(maxCockroaches))
                     }
                 }
-                Text("Current: \(CockroachManager.shared.cockroaches.count) alive")
+                Text("当前存活 / Currently alive: \(CockroachManager.shared.cockroaches.count)")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -45,9 +45,9 @@ struct SettingsView: View {
             // Growth time slider
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text("🐣 Baby Growth Time")
+                    Text("🐣 幼虫成长时间 / Baby Growth Time")
                     Spacer()
-                    Text("\(Int(growthMinutes)) min")
+                    Text("\(Int(growthMinutes)) 分 / min")
                         .monospacedDigit()
                         .foregroundColor(.secondary)
                 }
@@ -62,7 +62,7 @@ struct SettingsView: View {
 
             HStack {
                 Spacer()
-                Text("v0.1.0")
+                Text("v2.0.0")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -76,12 +76,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var statusItem: NSStatusItem!
     private var settingsWindow: NSWindow?
     private var nightModeTimer: Timer?
+    private var redEyeMenuItem: NSMenuItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Hide dock icon — menu bar only
         NSApp.setActivationPolicy(.accessory)
 
         setupMenuBar()
+
+        // Start polling other apps' window bounds for window-edge crawl behavior.
+        WindowTracker.shared.start()
 
         // Restore saved state or summon first cockroach
         let manager = CockroachManager.shared
@@ -110,23 +114,35 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
         let menu = NSMenu()
 
-        let summonItem = NSMenuItem(title: "🪳 Summon Cockroach", action: #selector(summonCockroach), keyEquivalent: "n")
+        let summonItem = NSMenuItem(title: "🪳 召唤蟑螂 / Summon Cockroach", action: #selector(summonCockroach), keyEquivalent: "n")
         summonItem.target = self
         menu.addItem(summonItem)
 
-let killAllItem = NSMenuItem(title: "☠️ Kill All", action: #selector(killAllCockroaches), keyEquivalent: "k")
+        let killAllItem = NSMenuItem(title: "☠️ 全部消灭 / Kill All", action: #selector(killAllCockroaches), keyEquivalent: "k")
         killAllItem.target = self
         menu.addItem(killAllItem)
 
+        let dropCakeItem = NSMenuItem(title: "🍰 聚餐模式 / Feeding Time", action: #selector(dropCake), keyEquivalent: "d")
+        dropCakeItem.target = self
+        menu.addItem(dropCakeItem)
+
         menu.addItem(NSMenuItem.separator())
 
-        let settingsItem = NSMenuItem(title: "⚙️ Settings", action: #selector(openSettings), keyEquivalent: ",")
+        let redEyeItem = NSMenuItem(title: "🔴 红眼模式 / Red Eye Mode", action: #selector(toggleRedEyeMode), keyEquivalent: "r")
+        redEyeItem.target = self
+        redEyeItem.state = RedEyeModeManager.shared.isActive ? .on : .off
+        menu.addItem(redEyeItem)
+        redEyeMenuItem = redEyeItem
+
+        menu.addItem(NSMenuItem.separator())
+
+        let settingsItem = NSMenuItem(title: "⚙️ 设置 / Settings", action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
 
         menu.addItem(NSMenuItem.separator())
 
-        let quitItem = NSMenuItem(title: "❌ Quit", action: #selector(quitApp), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "❌ 退出 / Quit", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
 
@@ -135,6 +151,15 @@ let killAllItem = NSMenuItem(title: "☠️ Kill All", action: #selector(killAll
 
     private func updateMenuBarIcon() {
         statusItem.button?.title = NightModeManager.shared.isNightMode ? "🪳🌙" : "🪳"
+    }
+
+    @objc private func dropCake() {
+        CakeManager.shared.dropCake()
+    }
+
+    @objc private func toggleRedEyeMode() {
+        RedEyeModeManager.shared.toggle()
+        redEyeMenuItem?.state = RedEyeModeManager.shared.isActive ? .on : .off
     }
 
     @objc private func summonCockroach() {
@@ -165,7 +190,7 @@ let killAllItem = NSMenuItem(title: "☠️ Kill All", action: #selector(killAll
             backing: .buffered,
             defer: false
         )
-        window.title = "CockroachPet Settings"
+        window.title = "CockroachPet 设置 / Settings"
         window.contentView = hostingView
         window.center()
         window.isReleasedWhenClosed = false
